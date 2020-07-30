@@ -6,7 +6,7 @@ import torch
 
 class DataLoader():
     """Iterate over data samples in batches."""
-    def __init__(self, samples, batch_size=32, drop_last=False):
+    def __init__(self, samples, batch_size=32):
         # Store samples sorted by length
         self.samples = sorted(samples, key=lambda x: x[0].shape[0])
 
@@ -18,25 +18,24 @@ class DataLoader():
             text = torch.nn.utils.rnn.pad_sequence(text, batch_first=True)
             # Combine labels into single tensor
             labels = torch.tensor(labels)
-            # Pad samples in each batch
+            # Store this batch
             self.batches.append((text, labels))
         logging.debug('Created {} batches of size {} from {} samples'.format(
-            len(self.batches), batch_size, len(samples)))
+            len(self.batches), self.batches[0][0].shape[0], len(samples)))
 
         # Create a DataLoader for each batch of the same length
         self.loaders = [
             torch.utils.data.DataLoader(
-                batch,
+                torch.utils.data.TensorDataset(*batch),
                 batch_size=batch_size,
-                shuffle=True,
-                drop_last=drop_last
+                shuffle=True
             )  # omit last batch if smaller than batch_size
             for batch in self.batches
         ]
 
     def __iter__(self):  # called by Python to create an iterator
         # Make an iterator for every batch
-        iters = [iter(loader) for loader in self.loaders.values()]
+        iters = [iter(loader) for loader in self.loaders]
         while iters:
             # Pick an iterator (a batch)
             im = random.choice(iters)
@@ -74,12 +73,12 @@ class DataLoader():
             yield arr[start:end]
 
 
-def get_loaders(samples, split_ratio=[.6, .2, .2], drop_last=True):
+def get_loaders(samples, split_ratio=[.6, .2, .2], batch_size=32):
     # Split samples
     random.shuffle(samples)
     splits = list(DataLoader.splits(samples, split_ratio))
 
     # Get data loaders
-    loaders = [DataLoader(split, drop_last=drop_last) for split in splits]
+    loaders = [DataLoader(split, batch_size=batch_size) for split in splits]
 
     return loaders
