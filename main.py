@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import logging
+import random
 
 import torchtext
 
@@ -11,6 +12,9 @@ import utils
 def main():
     # Configure logging
     logging.basicConfig(level=logging.DEBUG)
+
+    # Set random seeds
+    random.seed(0)
 
     # Determine which dataset to use
     dataset = {'FRN': datasets.frn.FRN}['FRN']()
@@ -23,9 +27,9 @@ def main():
     # Get preprocessed vectors
     samples = utils.preprocess.get_samples(dataset, glove)
 
-    # Create data loader
-    train_loader, valid_loader, test_loader = utils.dataloader.get_loader(
-        samples, train=.6, valid=.2, test=.2)
+    # Create data loaders
+    train_loader, valid_loader, test_loader = utils.dataloader.get_loaders(
+        samples)
 
 
 if __name__ == '__main__':
