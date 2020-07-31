@@ -28,8 +28,7 @@ class DataLoader():
             torch.utils.data.DataLoader(
                 torch.utils.data.TensorDataset(*batch),
                 batch_size=batch_size,
-                shuffle=True
-            )  # omit last batch if smaller than batch_size
+                shuffle=True)  # omit last batch if smaller than batch_size
             for batch in self.batches
         ]
 

@@ -8,7 +8,7 @@ import pandas as pd
 from .dataset import Dataset
 
 
-class FRN(Dataset):
+class FakeRealNews(Dataset):
     """Fake and real news dataset.
 
     Avaliable: <https://www.kaggle.com/clmentbisaillon/fake-and-real-news-dataset>
@@ -21,7 +21,7 @@ class FRN(Dataset):
         self.trueurl = 'https://drive.google.com/uc?export=download&id=1NfOcHzRV3vXERqDypVHSdckkDf_J-D-5'
 
     def path(self):
-        return self.root + '/FRN'
+        return self.root + '/FakeRealNews'
 
     def load(self, download=True):
         """Load and return the dataset."""
