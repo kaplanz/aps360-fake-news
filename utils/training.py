@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import statistics
+from multiprocessing import Process
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -33,18 +34,29 @@ def train(model, train_loader, valid_loader, args):
         valid_loss = td['valid_loss'] + valid_loss
 
     logging.info('Training for {} epochs'.format(args.epochs))
+    # Outer training loop
     for epoch in range(start, end):
-        # Train model over all batches
-        model.train()
+        model.train()  # set model to training mode
+
+        correct, total = 0, 0
+        losses = []
+        # Inner training loop
         for text, labels in train_loader:
             out = model(text).flatten()
             loss = criterion(out, labels.float())
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
+            # Record statistics for this batch
+            pred = (out >
+                    0.5).long()  # predict `true` for values greater than 0.5
+            correct += pred.eq(labels).sum().item()
+            total += labels.shape[0]
+            losses.append(loss.item())
+
         # Evaluate model performance
-        train_acc[epoch], train_loss[epoch] = evaluate(model, train_loader,
-                                                       criterion)
+        train_acc[epoch], train_loss[epoch] = (correct /
+                                               total), statistics.mean(losses)
         valid_acc[epoch], valid_loss[epoch] = evaluate(model, valid_loader,
                                                        criterion)
         logging.debug(
@@ -95,8 +107,14 @@ def evaluate(model, data_loader, criterion):
 
 def plot(td):
     """Plot training data."""
-    plot_training_curve('Accuracy', td['train_acc'], td['valid_acc'])
-    plot_training_curve('Loss', td['train_loss'], td['valid_loss'])
+    procs = [
+        Process(target=plot_training_curve,
+                args=('Accuracy', td['train_acc'], td['valid_acc'])),
+        Process(target=plot_training_curve,
+                args=('Loss', td['train_loss'], td['valid_loss']))
+    ]
+    [proc.start() for proc in procs]
+    [proc.join() for proc in procs]
 
 
 def get_criterion(loss):
