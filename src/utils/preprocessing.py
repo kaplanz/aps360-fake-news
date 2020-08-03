@@ -8,11 +8,11 @@ import torch
 import tqdm
 
 
-def get_samples(dataset, vocab):
+def get_samples(dataset, vocab, init=False):
     """Extract preprocessed samples from the dataset."""
     # Check if cleaning has already occurred
     path = dataset.path() + '/processed/samples.pkl'
-    if (os.path.isfile(path)):
+    if os.path.isfile(path) and not init:
         # Load samples from pickle
         logging.info('Loading binary from {}'.format(path))
         with open(path, 'rb') as f:

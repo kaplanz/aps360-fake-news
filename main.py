@@ -14,9 +14,10 @@ import random
 import torch
 import torchtext
 
-import datasets
-import models
-import utils
+import src.dataloaders as dataloaders
+import src.datasets as datasets
+import src.models as models
+import src.utils as utils
 
 
 def main():
@@ -27,6 +28,8 @@ def main():
     # yapf: disable
     parser = argparse.ArgumentParser(description='Fake News Classifier')
     # Modes
+    parser.add_argument('--init', action='store_true', default=False,
+                        help='perform initialization')
     parser.add_argument('--train', action='store_true', default=False,
                         help='train the model')
     parser.add_argument('--test', action='store_true', default=False,
@@ -36,6 +39,8 @@ def main():
     # Options
     parser.add_argument('-b', '--batch-size', type=int, default=64, metavar='N',
                         help='input batch size for training (default: 64)')
+    parser.add_argument('--data-loader', type=str, default='BatchLoader',
+                        help='data loader to use (default: "BatchLoader")')
     parser.add_argument('--dataset', type=str, default='FakeRealNews',
                         help='dataset to use (default: "FakeRealNews")')
     parser.add_argument('-e', '--epochs', type=int, default=10,
@@ -48,8 +53,8 @@ def main():
                         help='loss function for training (default: "BCEWithLogitsLoss")')
     parser.add_argument('--model', type=str, default='FakeNewsNet',
                         help='model architecture to train (default: "FakeNewsNet")')
-    parser.add_argument('-s', '--sample-size', type=int, default=-1, metavar='N',
-                        help='sample size for training (default: -1)')
+    parser.add_argument('-s', '--sample-size', type=int, metavar='N',
+                        help='sample size for training')
     parser.add_argument('--seed', type=int, default=0,
                         help='random seed (default: 0)')
     parser.add_argument('--save', action='store_true', default=True,
@@ -59,7 +64,7 @@ def main():
     # yapf: enable
 
     # Exit if no mode is specified
-    if not args.train and not args.test and not args.plot:
+    if not args.init and not args.train and not args.test and not args.plot:
         logging.error(
             'No mode specified. Please choose one of "--train", "--test", "--plot"'
         )
@@ -72,12 +77,11 @@ def main():
     # Variable declarations
     training_data = None
 
-    # Setup for train, test
-    if args.train or args.test:
+    # Perform initialization
+    if args.init or args.train or args.test:
         # Determine which dataset to use
-        dataset = {
-            'FakeRealNews': datasets.frn.FakeRealNews
-        }[args.dataset]()  # yapf: disable
+        dataset = getattr(getattr(datasets, args.dataset.lower()),
+                          args.dataset)()
 
         # Preload the dataset
         dataset.load()
@@ -85,18 +89,32 @@ def main():
         glove = torchtext.vocab.GloVe(name='6B', dim=50)
 
         # Get preprocessed vectors
-        samples = utils.preprocessing.get_samples(dataset, glove)
+        samples = utils.preprocessing.get_samples(dataset, glove, args.init)
         random.shuffle(samples)
-        samples = samples[:args.sample_size]  # limit training samples
 
-        # Create data loaders
-        train_loader, valid_loader, test_loader = utils.dataloader.get_loaders(
-            samples, batch_size=args.batch_size)
+    # Setup for train, test
+    if args.train or args.test:
+        # Select data loader to use
+        DataLoader = getattr(getattr(dataloaders, args.data_loader.lower()),
+                             args.data_loader)
+
+        # Split samples
+        split_ratio = [.6, .2, .2]
+        trainset, validset, testset = list(
+            DataLoader.splits(samples, split_ratio))
+        if args.sample_size is not None:  # limit samples used in training
+            trainset = trainset[:args.sample_size]
+            validset = validset[:int(args.sample_size * split_ratio[1] /
+                                     split_ratio[0])]
+
+        # Get data loaders
+        train_loader, valid_loader, test_loader = [
+            DataLoader(split, batch_size=args.batch_size)
+            for split in [trainset, validset, testset]
+        ]
 
         # Create the model
-        model = {
-            'FakeNewsNet': models.fakenewsnet.FakeNewsNet
-        }[args.model](glove)  # yapf: disable
+        model = getattr(getattr(models, args.model.lower()), args.model)(glove)
 
         # Load a pretrained model
         if args.load is not None:
