@@ -32,7 +32,6 @@ class BatchLoader(DataLoader):
         for batch in list(DataLoader.divide(self.samples, self.batch_size)):
             text, labels = zip(*batch)
             # Pad text samples in each batch
-            text = [t[:100] for t in text]
             text = torch.nn.utils.rnn.pad_sequence(text, batch_first=True)
             # Combine labels into single tensor
             labels = torch.tensor(labels)

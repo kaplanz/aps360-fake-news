@@ -60,6 +60,8 @@ def main():
     parser.add_argument('--save', action='store_true', default=True,
                         help='save the model and its training data (default: True)')
     parser.add_argument('--no-save', dest='save', action='store_false')
+    parser.add_argument('--truncate', type=int, metavar='N',
+                        help='number of words after which samples are truncated')
     args = parser.parse_args()
     # yapf: enable
 

@@ -20,6 +20,8 @@ def get_samples(dataset, vocab, init=False):
     else:
         # Load raw data for cleaning
         data = dataset.load()
+        # Drop missing values
+        data.dropna(inplace=True)
         # Perform preprocessing
         clean(data)
         # Extract samples for PyTorch
@@ -30,8 +32,10 @@ def get_samples(dataset, vocab, init=False):
         with open(path, 'wb') as f:
             pickle.dump(samples, f)
 
+    # Convert samples to tensors
     logging.debug('Converting samples to tensors')
     samples = [(torch.tensor(text).long(), label) for text, label in samples]
+
     return samples
 
 
