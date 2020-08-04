@@ -22,7 +22,7 @@ def train(model, train_loader, valid_loader, args):
     end = args.epochs
     if args.load is not None:
         start += args.load + 1
-        end += args.load
+        end += args.load + 1
         # Load training data (if any)
         td = utils.load_training_data(args)
         if start < len(td['train_acc']):
