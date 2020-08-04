@@ -1,7 +1,4 @@
 import logging
-import random
-
-import torch
 
 
 class DataLoader():
