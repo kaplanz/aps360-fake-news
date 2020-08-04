@@ -21,7 +21,7 @@ def get_samples(dataset, vocab, init=False):
         # Load raw data for cleaning
         data = dataset.load()
         # Drop missing values
-        data.dropna(inplace=True)
+        data.dropna(subset=['text', 'label'], inplace=True)
         # Perform preprocessing
         clean(data)
         # Extract samples for PyTorch
@@ -49,9 +49,12 @@ def clean(data):
     # Clean each sample individually
     for i, sample in tqdm.tqdm(text.iteritems(), total=text.size):
         # Keep only alphanumeric characters
-        sample = re.sub('(?<! )(?=[.,!?()])|(?<=[.,!?()])(?! )', r' ', sample)
+        sample = re.sub(r'(?<! )(?=[^\s\w])|(?<=[^\s\w])(?! )', r' ', sample)
         # Convert to lowercase
         sample = sample.lower()
+        # Strip title sequences "LONDON (Reuters) - "
+        if len(sample.split('-', 1)[0]) < 50:
+            sample = sample.split('-', 1)[-1]
 
         # Store cleaned samples in DataFrame
         data.at[i, 'clean'] = sample
