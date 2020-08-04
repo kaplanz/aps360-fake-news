@@ -43,14 +43,17 @@ def clean(data):
     """Clean the text samples for the model."""
     logging.info('Cleaning samples')
 
+    # Extract raw samples to iterate over
     text = data['text']
+
+    # Clean each sample individually
     for i, sample in tqdm.tqdm(text.iteritems(), total=text.size):
         # Keep only alphanumeric characters
         sample = re.sub('(?<! )(?=[.,!?()])|(?<=[.,!?()])(?! )', r' ', sample)
         # Convert to lowercase
         sample = sample.lower()
 
-        # Store as column in DataFrame
+        # Store cleaned samples in DataFrame
         data.at[i, 'clean'] = sample
 
 

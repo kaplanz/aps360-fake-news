@@ -43,7 +43,9 @@ class FakeRealNews(Dataset):
             true['label'] = 1
 
             # Construct DataFrame
-            self.data = pd.concat([fake, true])
+            data = pd.concat([fake, true])
+            data.reset_index(drop=True, inplace=True)
+            self.data = data
 
         return self.data
 
