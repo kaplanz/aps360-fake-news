@@ -16,12 +16,29 @@ def get_config(args):
         'batch_size': args.batch_size,
         'data_loader': args.data_loader,
         'dataset': args.dataset,
-        'learning_rate': args.lr,
+        'learning_rate': args.learning_rate,
         'loss': args.loss,
         'model': args.model,
         'sample_size': args.sample_size,
         'seed': args.seed,
     }
+
+
+def load_config(args):
+    """Load configuration from a file."""
+    path = args.config
+    with open(path, 'r') as f:
+        config = json.load(f)
+        for k, v in config.items():
+            setattr(args, k, v)
+
+
+def save_config(args):
+    """Save run configuration."""
+    path = get_path(args) + '/config.json'
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w') as f:
+        json.dump(get_config(args), f)
 
 
 def get_criterion(loss):
@@ -45,27 +62,6 @@ def get_model(vocab, args):
     return getattr(getattr(models, args.model.lower()), args.model)(vocab)
 
 
-def get_path(args, root='./output'):
-    """Generate a name for the model consisting of all the hyperparameter values."""
-    return root + '/' + format(
-        zlib.adler32(str(get_config(args)).encode('utf-8')), 'x')
-
-
-def save_config(args):
-    """Save run configuration."""
-    path = get_path(args) + '/config.json'
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, 'w') as f:
-        json.dump(get_config(args), f)
-
-
-def save_model(epoch, model, args):
-    """Save a model checkpoint to a file."""
-    path = get_path(args) + '/models/epoch{}.pt'.format(epoch)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    torch.save(model.state_dict(), path)
-
-
 def load_model(epoch, model, args):
     """Load a model checkpoint from a file."""
     path = get_path(args) + '/models/epoch{}.pt'.format(epoch)
@@ -77,14 +73,17 @@ def load_model(epoch, model, args):
         exit(1)
 
 
-def save_training_data(td, args, silent=False):
-    """Save training data to a file."""
-    path = get_path(args) + '/training.json'
+def save_model(epoch, model, args):
+    """Save a model checkpoint to a file."""
+    path = get_path(args) + '/models/epoch{}.pt'.format(epoch)
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, 'w') as f:
-        json.dump(td, f)
-        if not silent:
-            logging.info('Saved training data to {}'.format(path))
+    torch.save(model.state_dict(), path)
+
+
+def get_path(args, root='./output'):
+    """Generate a name for the model consisting of all the hyperparameter values."""
+    return root + '/' + format(
+        zlib.adler32(str(get_config(args)).encode('utf-8')), 'x')
 
 
 def load_training_data(args, allow_missing=True):
@@ -101,6 +100,16 @@ def load_training_data(args, allow_missing=True):
         logging.error('Training data missing, expected at {}'.format(path))
         exit(1)
     return td
+
+
+def save_training_data(td, args, verbose=False):
+    """Save training data to a file."""
+    path = get_path(args) + '/training.json'
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w') as f:
+        json.dump(td, f)
+        if verbose:
+            logging.info('Saved training data to {}'.format(path))
 
 
 def plot_attribute(attribute, dtrain, dvalid):

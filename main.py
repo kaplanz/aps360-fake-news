@@ -34,13 +34,15 @@ def main():
     # Options
     parser.add_argument('-b', '--batch-size', type=int, default=64, metavar='N',
                         help='input batch size for training (default: 64)')
+    parser.add_argument('-c', '--config', type=str,
+                        help='path to configuration json file (overrides args)')
     parser.add_argument('--data-loader', type=str, default='BatchLoader',
                         help='data loader to use (default: "BatchLoader")')
     parser.add_argument('--dataset', type=str, default='FakeRealNews',
                         help='dataset to use (default: "FakeRealNews")')
     parser.add_argument('-e', '--epochs', type=int, default=10,
                         help='number of epochs to train (default: 10)')
-    parser.add_argument('--lr', '--learning-rate', type=float, default=1e-4,
+    parser.add_argument('--lr', '--learning-rate', dest='learning_rate', type=float, default=1e-4,
                         help='learning rate (default: 1e-4)')
     parser.add_argument('-l', '--load', type=int, metavar='EPOCH',
                         help='load a model and its training data')
@@ -61,6 +63,10 @@ def main():
     # Configure logger
     logging.basicConfig(level=logging.DEBUG)
     logging.getLogger('matplotlib').setLevel(logging.WARNING)
+
+    # Load configuration file if specified
+    if args.config is not None:
+        utils.load_config(args)
 
     # Exit if no mode is specified
     if not args.init and not args.train and not args.test and not args.plot:
@@ -158,6 +164,9 @@ def main():
     if args.plot:
         if training_data is None:
             training_data = utils.load_training_data(args, allow_missing=False)
+        if args.load is not None and not args.train:
+            for k, v in training_data.items():
+                training_data[k] = v[:args.load + 1]
 
         logging.info('Plotting training data')
         training.plot(training_data)

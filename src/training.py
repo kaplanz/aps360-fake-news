@@ -11,7 +11,7 @@ from . import utils
 def train(model, train_loader, valid_loader, args):
     """Train the model."""
     criterion = utils.get_criterion(args.loss)
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
 
     # Allocate space for training data
     train_acc, valid_acc, train_loss, valid_loss = [[None] * args.epochs
@@ -71,13 +71,13 @@ def train(model, train_loader, valid_loader, args):
 
         # Condense and save training data
         td = {
-            'train_acc': train_acc,
-            'valid_acc': valid_acc,
-            'train_loss': train_loss,
-            'valid_loss': valid_loss
+            'train_acc': train_acc[:epoch + 1],
+            'valid_acc': valid_acc[:epoch + 1],
+            'train_loss': train_loss[:epoch + 1],
+            'valid_loss': valid_loss[:epoch + 1]
         }
         if args.save:
-            utils.save_training_data(td, args, silent=True)
+            utils.save_training_data(td, args, verbose=(epoch + 1 == end))
 
     # Return training data
     return td
