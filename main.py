@@ -11,6 +11,7 @@ import logging
 import os
 import random
 
+import pandas as pd
 import torch
 import torchtext
 
@@ -29,6 +30,8 @@ def main():
                         help='train the model')
     parser.add_argument('--test', action='store_true', default=False,
                         help='test the model (must either train or load a model)')
+    parser.add_argument('--demo', type=str, metavar='FILE',
+                        help='demo the model on linewise samples from a file (must either train or load a model)')
     parser.add_argument('--plot', action='store_true', default=False,
                         help='plot training data (must either train or have existing training data)')
     # Options
@@ -69,9 +72,9 @@ def main():
         utils.load_config(args)
 
     # Exit if no mode is specified
-    if not args.init and not args.train and not args.test and not args.plot:
+    if not args.init and not args.train and not args.test and not args.demo and not args.plot:
         logging.error(
-            'No mode specified. Please choose one of "--init", "--train", "--test", "--plot".'
+            'No mode specified. Please choose one of "--init", "--train", "--test", "--demo", "--plot".'
         )
         exit(1)
     # Exit on "--load" if run directory not found
@@ -82,16 +85,16 @@ def main():
             'Could not find directory for current configuration {}'.format(
                 utils.get_path(args)))
         exit(1)
-    # Exit on "--test" without "--train" or "--load"
-    if args.test and not (args.train or args.load is not None):
+    # Exit on "--test" or "--demo" without "--train" or "--load"
+    if (args.test or args.demo) and not (args.train or args.load is not None):
         logging.error(
-            'Cannot run "--test" without a model. Try again with either "--train" or "--load".'
+            'Cannot run "--test" or "--demo" without a model. Try again with either "--train" or "--load".'
         )
         exit(1)
 
     # Setup run directory
-    if args.save and not (args.init
-                          and not (args.train or args.test or args.plot)):
+    if args.save and not args.init and not (args.train or args.test
+                                            or args.demo or args.plot):
         utils.save_config(args)
         path = utils.get_path(args) + '/output.log'
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -104,21 +107,21 @@ def main():
     # Variable declarations
     training_data = None
 
+    # Load GloVe vocabulary
+    if args.init or args.train or args.test or args.demo:
+        glove = torchtext.vocab.GloVe(name='6B', dim=50)
+
     # Perform initialization
     if args.init or args.train or args.test:
         # Determine which dataset to use
         dataset = utils.get_dataset(args)
-
         # Preload the dataset
         dataset.load()
-        # Load GloVe vocabulary
-        glove = torchtext.vocab.GloVe(name='6B', dim=50)
-
-        # Get preprocessed vectors
+        # Get preprocessed samples
         samples = preprocessing.get_samples(dataset, glove, args.init)
         random.shuffle(samples)
 
-    # Setup for train, test
+    # DataLoader setup for "--train", "--test"
     if args.train or args.test:
         # Select data loader to use
         DataLoader = utils.get_data_loader(args)
@@ -138,6 +141,33 @@ def main():
             for split in [trainset, validset, testset]
         ]
 
+    # Load samples for demo
+    if args.demo:
+        if os.path.isfile(args.demo):
+            # Read samples from the input file
+            with open(args.demo, 'r') as f:
+                samples = [line for line in f]
+            data = pd.DataFrame({
+                'text': samples,
+                'label': [0.5] * len(samples)
+            })
+            # Preprocess samples
+            preprocessing.clean(data)
+            samples = preprocessing.encode(data, glove)
+            samples = [(torch.tensor(s[0]), s[1]) for s in samples]
+
+            # Select data loader to use
+            DataLoader = utils.get_data_loader(args)
+
+            # Get data loader
+            data_loader = DataLoader(samples, batch_size=1)
+        else:
+            logging.error('Could not find file for demo at {}'.format(
+                args.demo))
+            exit(1)
+
+    # Model setup for "--train", "--test", "--demo"
+    if args.train or args.test or args.demo:
         # Create the model
         model = utils.get_model(glove, args)
 
@@ -158,6 +188,24 @@ def main():
                 acc, loss))
         else:
             logging.error('No model loaded for testing')
+            exit(1)
+
+    # Run "--test"
+    if args.demo:
+        if args.train or args.load is not None:
+            model.eval()  # set model to evaluate mode
+            logging.info('-- Results --')
+            for i, (text, _) in enumerate(data_loader):
+                preview = data['text'][i][:32] + '...'
+                out = model(text)
+                pred = 'true' if (out > 0.5) else 'fake'
+                confidence = torch.sigmoid(out - 0.5).item()
+                confidence = confidence if pred == 'true' else 1 - confidence
+                logging.info(
+                    'Report {}: {} with {:.2%} confidence - "{}"'.
+                    format(i, pred, confidence, preview))
+        else:
+            logging.error('No model loaded for demo')
             exit(1)
 
     # Run "--plot"
