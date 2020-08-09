@@ -1,5 +1,3 @@
-import random
-
 import torch
 
 from .dataloader import DataLoader
@@ -12,18 +10,6 @@ class BucketLoader(DataLoader):
             samples, key=lambda x: x[0].shape[0])  # sort samples by length
         super().__init__(samples, batch_size, shuffle)
         self.loaders = self.get_loaders()
-
-    def __iter__(self):  # called by Python to create an iterator
-        # Make an iterator for every batch
-        iters = [iter(loader) for loader in self.loaders]
-        while iters:
-            # Pick an iterator (a batch)
-            im = random.choice(iters)
-            try:
-                yield next(im)
-            except StopIteration:
-                # No more elements in the iterator, remove it
-                iters.remove(im)
 
     def get_batches(self):
         # Create batches of similar length samples

@@ -146,7 +146,7 @@ def main():
         if os.path.isfile(args.demo):
             # Read samples from the input file
             with open(args.demo, 'r') as f:
-                samples = [line for line in f]
+                samples = [line for line in f if line.strip()]
             data = pd.DataFrame({
                 'text': samples,
                 'label': [0.5] * len(samples)
@@ -154,13 +154,14 @@ def main():
             # Preprocess samples
             preprocessing.clean(data)
             samples = preprocessing.encode(data, glove)
-            samples = [(torch.tensor(s[0]), s[1]) for s in samples]
+            samples = [(torch.tensor(text).long(), label)
+                       for text, label in samples]
 
             # Select data loader to use
             DataLoader = utils.get_data_loader(args)
 
             # Get data loader
-            data_loader = DataLoader(samples, batch_size=1)
+            data_loader = DataLoader(samples, batch_size=1, shuffle=False)
         else:
             logging.error('Could not find file for demo at {}'.format(
                 args.demo))
@@ -190,7 +191,7 @@ def main():
             logging.error('No model loaded for testing')
             exit(1)
 
-    # Run "--test"
+    # Run "--demo"
     if args.demo:
         if args.train or args.load is not None:
             model.eval()  # set model to evaluate mode
@@ -202,8 +203,8 @@ def main():
                 confidence = torch.sigmoid(out - 0.5).item()
                 confidence = confidence if pred == 'true' else 1 - confidence
                 logging.info(
-                    'Report {}: {} with {:.2%} confidence - "{}"'.
-                    format(i, pred, confidence, preview))
+                    'Report {}: {} with {:.2%} confidence - "{}"'.format(
+                        i, pred, confidence, preview))
         else:
             logging.error('No model loaded for demo')
             exit(1)

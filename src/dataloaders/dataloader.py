@@ -1,4 +1,5 @@
 import logging
+import random
 
 
 class DataLoader():
@@ -8,10 +9,28 @@ class DataLoader():
         self.batch_size = batch_size
         self.shuffle = shuffle
         self.batches = self.get_batches()
+        self.loaders = self.get_loaders()
         logging.info(self)
 
     def __iter__(self):  # called by Python to create an iterator
-        raise NotImplementedError
+        if self.shuffle:
+            # Update batches, loaders
+            self.batches = self.get_batches()
+            self.loaders = self.get_loaders()
+        # Make an iterator for every batch
+        iters = [iter(loader) for loader in self.loaders]
+        while iters:
+            # Pick an iterator (a batch)
+            if self.shuffle:
+                im = random.choice(iters)
+            else:
+                im = iters[0]
+            # Use this iterator until it is depleted
+            try:
+                yield next(im)
+            except StopIteration:
+                # No more elements in the iterator, remove it
+                iters.remove(im)
 
     def __len__(self):
         return len(self.batches)
@@ -23,6 +42,10 @@ class DataLoader():
 
     def get_batches(self):
         """Get batches from the data samples."""
+        raise NotImplementedError
+
+    def get_loaders(self):
+        """Get loaders from the data batches."""
         raise NotImplementedError
 
     @staticmethod
