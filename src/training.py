@@ -49,8 +49,8 @@ def train(model, train_loader, valid_loader, args):
             optimizer.step()
             optimizer.zero_grad()
             # Record statistics for this batch
-            pred = (out >
-                    0.5).long()  # predict `true` for values greater than 0.5
+            prob = torch.sigmoid(out)  # apply sigmoid to get probability
+            pred = (prob > 0.5).long()  # predict `true` if greater than 0.5
             correct += pred.eq(labels).sum().item()
             total += labels.shape[0]
             losses.append(loss.item())
@@ -91,8 +91,9 @@ def evaluate(model, data_loader, criterion):
     losses = []
     for text, labels in data_loader:
         out = model(text).flatten()
+        prob = torch.sigmoid(out)  # apply sigmoid to get probability
+        pred = (prob > 0.5).long()  # predict `true` if greater than 0.5
         loss = criterion(out, labels.float())
-        pred = (out > 0.5).long()  # predict `true` for values greater than 0.5
         correct += pred.eq(labels).sum().item()
         total += labels.shape[0]
         losses.append(loss.item())

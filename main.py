@@ -198,13 +198,18 @@ def main():
             logging.info('-- Results --')
             for i, (text, _) in enumerate(data_loader):
                 preview = data['text'][i][:32] + '...'
-                out = model(text)
-                pred = 'true' if (out > 0.5) else 'fake'
-                confidence = torch.sigmoid(out - 0.5).item()
-                confidence = confidence if pred == 'true' else 1 - confidence
+                out = model(text).flatten()
+                prob = torch.sigmoid(out)  # apply sigmoid to get probability
+                pred = (prob >
+                        0.5).long()  # predict `true` if greater than 0.5
+                label = ['fake', 'true'][pred.item()]
+                label = '{}{}{}'.format(
+                    '\033[92m' if pred.item() else '\033[93m', label,
+                    '\033[0m')
+                confidence = (prob if pred.item() else 1 - prob).item()
                 logging.info(
                     'Report {}: {} with {:.2%} confidence - "{}"'.format(
-                        i, pred, confidence, preview))
+                        i, label, confidence, preview))
         else:
             logging.error('No model loaded for demo')
             exit(1)
