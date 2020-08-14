@@ -16,6 +16,12 @@ def train(model, train_loader, valid_loader, args):
     # Allocate space for training data
     train_acc, valid_acc, train_loss, valid_loss = [[None] * args.epochs
                                                     for _ in range(4)]
+    td = {  # initialize training data dictionary
+        'train_acc': train_acc,
+        'valid_acc': valid_acc,
+        'train_loss': train_loss,
+        'valid_loss': valid_loss
+    }
 
     # Determine starting and ending epoch
     start = 0
