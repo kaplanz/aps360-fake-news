@@ -10,6 +10,7 @@ import argparse
 import logging
 import os
 import random
+import sys
 
 import pandas as pd
 import torch
@@ -21,16 +22,26 @@ import src.utils as utils
 
 
 def main():
+    # Argparse custom actions
+    class SetModes(argparse.Action):
+        """Set the modes of operations."""
+        def __call__(self, parser, args, values, option_string=None):
+            for value in values:
+                setattr(args, value, True)
+
     # yapf: disable
     parser = argparse.ArgumentParser(description='Fake News Classifier')
-    # Modes
+    # Initialization
     parser.add_argument('--init', action='store_true', default=False,
                         help='perform initialization')
+    # Modes
+    parser.add_argument('-m', '--mode', action=SetModes, nargs='+', choices=['train', 'test', 'demo', 'plot'],
+                        help='specify the mode of operation: train, test, demo, plot')
     parser.add_argument('--train', action='store_true', default=False,
                         help='train the model')
     parser.add_argument('--test', action='store_true', default=False,
                         help='test the model (must either train or load a model)')
-    parser.add_argument('--demo', type=str, metavar='FILE',
+    parser.add_argument('--demo', action='store_true', default=False,
                         help='demo the model on linewise samples from a file (must either train or load a model)')
     parser.add_argument('--plot', action='store_true', default=False,
                         help='plot training data (must either train or have existing training data)')
@@ -45,6 +56,8 @@ def main():
                         help='dataset to use (default: "FakeRealNews")')
     parser.add_argument('-e', '--epochs', type=int, default=10,
                         help='number of epochs to train (default: 10)')
+    parser.add_argument('-f', '--file', type=str,
+                        help='specify a file for another argument')
     parser.add_argument('--lr', '--learning-rate', dest='learning_rate', type=float, default=1e-4,
                         help='learning rate (default: 1e-4)')
     parser.add_argument('-l', '--load', type=int, metavar='EPOCH',
@@ -63,6 +76,11 @@ def main():
     args = parser.parse_args()
     # yapf: enable
 
+    # Print help if no args
+    if len(sys.argv) == 1:
+        parser.print_help()
+        parser.exit()
+
     # Configure logger
     logging.basicConfig(level=logging.DEBUG)
     logging.getLogger('matplotlib').setLevel(logging.WARNING)
@@ -74,10 +92,10 @@ def main():
     # Exit if no mode is specified
     if not args.init and not args.train and not args.test and not args.demo and not args.plot:
         logging.error(
-            'No mode specified. Please choose one of "--init", "--train", "--test", "--demo", "--plot".'
+            'No mode specified. Please specify with: --mode {init,train,test,demo,plot}'
         )
         exit(1)
-    # Exit on "--load" if run directory not found
+    # Exit on `--load` if run directory not found
     if (args.load is not None or
         (args.plot
          and not args.train)) and not os.path.isdir(utils.get_path(args)):
@@ -85,11 +103,16 @@ def main():
             'Could not find directory for current configuration {}'.format(
                 utils.get_path(args)))
         exit(1)
-    # Exit on "--test" or "--demo" without "--train" or "--load"
+    # Exit on `test` or `demo` without `train` or `--load EPOCH`
     if (args.test or args.demo) and not (args.train or args.load is not None):
         logging.error(
-            'Cannot run "--test" or "--demo" without a model. Try again with either "--train" or "--load".'
+            'Cannot run `test` or `demo` without a model. Try again with either `train` or `--load EPOCH`.'
         )
+        exit(1)
+    # Exit on `demo` without a string file
+    if args.demo and not args.file:
+        logging.error(
+            'Cannot run `demo` without a file. Try again with `--file FILE`.')
         exit(1)
 
     # Setup run directory
@@ -121,7 +144,7 @@ def main():
         samples = preprocessing.get_samples(dataset, glove, args.init)
         random.shuffle(samples)
 
-    # DataLoader setup for "--train", "--test"
+    # DataLoader setup for `train`, `test`
     if args.train or args.test:
         # Select data loader to use
         DataLoader = utils.get_data_loader(args)
@@ -143,9 +166,9 @@ def main():
 
     # Load samples for demo
     if args.demo:
-        if os.path.isfile(args.demo):
+        if os.path.isfile(args.file):
             # Read samples from the input file
-            with open(args.demo, 'r') as f:
+            with open(args.file, 'r') as f:
                 samples = [line for line in f if line.strip()]
             data = pd.DataFrame({
                 'text': samples,
@@ -164,10 +187,10 @@ def main():
             data_loader = DataLoader(samples, batch_size=1, shuffle=False)
         else:
             logging.error('Could not find file for demo at {}'.format(
-                args.demo))
+                args.file))
             exit(1)
 
-    # Model setup for "--train", "--test", "--demo"
+    # Model setup for `train`, `test`, `demo`
     if args.train or args.test or args.demo:
         # Create the model
         model = utils.get_model(glove, args)
@@ -176,11 +199,11 @@ def main():
         if args.load is not None:
             utils.load_model(args.load, model, args)
 
-    # Run "--train"
+    # Run `train`
     if args.train:
         training_data = training.train(model, train_loader, valid_loader, args)
 
-    # Run "--test"
+    # Run `test`
     if args.test:
         if args.train or args.load is not None:
             criterion = utils.get_criterion(args.loss)
@@ -191,7 +214,7 @@ def main():
             logging.error('No model loaded for testing')
             exit(1)
 
-    # Run "--demo"
+    # Run `demo`
     if args.demo:
         if args.train or args.load is not None:
             model.eval()  # set model to evaluate mode
@@ -214,7 +237,7 @@ def main():
             logging.error('No model loaded for demo')
             exit(1)
 
-    # Run "--plot"
+    # Run `plot`
     if args.plot:
         if training_data is None:
             training_data = utils.load_training_data(args, allow_missing=False)
