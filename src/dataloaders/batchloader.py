@@ -7,6 +7,7 @@ from .dataloader import DataLoader
 
 class BatchLoader(DataLoader):
     """Iterate over data samples in random batches."""
+
     def __init__(self, samples, batch_size=32, shuffle=True):
         super().__init__(samples, batch_size, shuffle)
 
@@ -32,7 +33,7 @@ class BatchLoader(DataLoader):
             torch.utils.data.DataLoader(
                 torch.utils.data.TensorDataset(*batch),
                 batch_size=self.batch_size,
-                shuffle=self.shuffle
+                shuffle=self.shuffle,
             )  # omit last batch if smaller than batch_size
             for batch in self.batches
         ]

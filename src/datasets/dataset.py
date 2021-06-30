@@ -1,6 +1,7 @@
-class Dataset():
+class Dataset:
     """Object for managing and loading a raw dataset."""
-    def __init__(self, root='./data'):
+
+    def __init__(self, root="./data"):
         self.root = root
         self.data = None
 

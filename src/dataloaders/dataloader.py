@@ -2,8 +2,9 @@ import logging
 import random
 
 
-class DataLoader():
+class DataLoader:
     """Iterate over data samples in batches."""
+
     def __init__(self, samples, batch_size=32, shuffle=True):
         self.samples = samples
         self.batch_size = batch_size
@@ -36,9 +37,9 @@ class DataLoader():
         return len(self.batches)
 
     def __str__(self):
-        return '{}: {} samples, {} batches'.format(self.__class__.__name__,
-                                                   len(self.samples),
-                                                   len(self))
+        return "{}: {} samples, {} batches".format(
+            self.__class__.__name__, len(self.samples), len(self)
+        )
 
     def get_batches(self):
         """Get batches from the data samples."""
@@ -52,14 +53,13 @@ class DataLoader():
     def divide(arr, n):
         """Divide `arr` into sublists of size `n`."""
         for i in range(0, len(arr), n):
-            yield arr[i:i + n]
+            yield arr[i : i + n]
 
     @staticmethod
     def split(arr, n):
         """Split `arr` into `n` roughly equal sublists."""
         k, m = divmod(len(arr), n)
-        return (arr[i * k + min(i, m):(i + 1) * k + min(i + 1, m)]
-                for i in range(n))
+        return (arr[i * k + min(i, m) : (i + 1) * k + min(i + 1, m)] for i in range(n))
 
     @staticmethod
     def splits(arr, split_ratio):

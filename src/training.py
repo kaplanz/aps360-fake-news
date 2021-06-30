@@ -14,13 +14,14 @@ def train(model, train_loader, valid_loader, args):
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
 
     # Allocate space for training data
-    train_acc, valid_acc, train_loss, valid_loss = [[None] * args.epochs
-                                                    for _ in range(4)]
+    train_acc, valid_acc, train_loss, valid_loss = [
+        [None] * args.epochs for _ in range(4)
+    ]
     td = {  # initialize training data dictionary
-        'train_acc': train_acc,
-        'valid_acc': valid_acc,
-        'train_loss': train_loss,
-        'valid_loss': valid_loss
+        "train_acc": train_acc,
+        "valid_acc": valid_acc,
+        "train_loss": train_loss,
+        "valid_loss": valid_loss,
     }
 
     # Determine starting and ending epoch
@@ -31,16 +32,16 @@ def train(model, train_loader, valid_loader, args):
         end += args.load + 1
         # Load training data (if any)
         td = utils.load_training_data(args)
-        if start < len(td['train_acc']):
+        if start < len(td["train_acc"]):
             logging.warning(
-                'Training data will be overwritten from epoch {}'.format(
-                    start))
-        train_acc = td['train_acc'][:start] + train_acc
-        valid_acc = td['valid_acc'][:start] + valid_acc
-        train_loss = td['train_loss'][:start] + train_loss
-        valid_loss = td['valid_loss'][:start] + valid_loss
+                "Training data will be overwritten from epoch {}".format(start)
+            )
+        train_acc = td["train_acc"][:start] + train_acc
+        valid_acc = td["valid_acc"][:start] + valid_acc
+        train_loss = td["train_loss"][:start] + train_loss
+        valid_loss = td["valid_loss"][:start] + valid_loss
 
-    logging.info('Training for {} epochs'.format(args.epochs))
+    logging.info("Training for {} epochs".format(args.epochs))
     # Outer training loop
     for epoch in range(start, end):
         model.train()  # set model to training mode
@@ -62,14 +63,17 @@ def train(model, train_loader, valid_loader, args):
             losses.append(loss.item())
 
         # Evaluate model performance
-        train_acc[epoch], train_loss[epoch] = (correct /
-                                               total), statistics.mean(losses)
-        valid_acc[epoch], valid_loss[epoch] = evaluate(model, valid_loader,
-                                                       criterion)
+        train_acc[epoch], train_loss[epoch] = (correct / total), statistics.mean(losses)
+        valid_acc[epoch], valid_loss[epoch] = evaluate(model, valid_loader, criterion)
         logging.debug(
-            'Epoch {}: train_acc: {:.4%}, valid_acc: {:.4%}, train_loss: {:.6f}, valid_loss: {:.6f}'
-            .format(epoch, train_acc[epoch], valid_acc[epoch],
-                    train_loss[epoch], valid_loss[epoch]))
+            "Epoch {}: train_acc: {:.4%}, valid_acc: {:.4%}, train_loss: {:.6f}, valid_loss: {:.6f}".format(
+                epoch,
+                train_acc[epoch],
+                valid_acc[epoch],
+                train_loss[epoch],
+                valid_loss[epoch],
+            )
+        )
 
         # Save model checkpoint
         if args.save:
@@ -77,10 +81,10 @@ def train(model, train_loader, valid_loader, args):
 
         # Condense and save training data
         td = {
-            'train_acc': train_acc[:epoch + 1],
-            'valid_acc': valid_acc[:epoch + 1],
-            'train_loss': train_loss[:epoch + 1],
-            'valid_loss': valid_loss[:epoch + 1]
+            "train_acc": train_acc[: epoch + 1],
+            "valid_acc": valid_acc[: epoch + 1],
+            "train_loss": train_loss[: epoch + 1],
+            "valid_loss": valid_loss[: epoch + 1],
         }
         if args.save:
             utils.save_training_data(td, args, verbose=(epoch + 1 == end))
@@ -109,10 +113,14 @@ def evaluate(model, data_loader, criterion):
 def plot(td):
     """Plot training data."""
     procs = [
-        Process(target=utils.plot_attribute,
-                args=('Accuracy', td['train_acc'], td['valid_acc'])),
-        Process(target=utils.plot_attribute,
-                args=('Loss', td['train_loss'], td['valid_loss']))
+        Process(
+            target=utils.plot_attribute,
+            args=("Accuracy", td["train_acc"], td["valid_acc"]),
+        ),
+        Process(
+            target=utils.plot_attribute,
+            args=("Loss", td["train_loss"], td["valid_loss"]),
+        ),
     ]
     [proc.start() for proc in procs]
     [proc.join() for proc in procs]
