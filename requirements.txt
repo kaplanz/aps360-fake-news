@@ -2,7 +2,7 @@ brotlipy==0.7.0
 certifi==2023.7.22
 cffi==1.14.0
 chardet==3.0.4
-cryptography==41.0.3
+cryptography==41.0.4
 cycler==0.10.0
 idna==2.10
 joblib==1.2.0
