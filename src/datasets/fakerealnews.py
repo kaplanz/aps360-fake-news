@@ -28,9 +28,9 @@ class FakeRealNews(Dataset):
         """Load and return the dataset."""
         if self.data is None:
             # Load or parse the data
-            args = {"file": "Fake.csv", "url": self.fakeurl if download else None}
+            args = {"file": "fake.csv", "url": self.fakeurl if download else None}
             fake = self.load_raw_file(**args)
-            args = {"file": "True.csv", "url": self.trueurl if download else None}
+            args = {"file": "true.csv", "url": self.trueurl if download else None}
             true = self.load_raw_file(**args)
 
             # Create labels for the datasets
